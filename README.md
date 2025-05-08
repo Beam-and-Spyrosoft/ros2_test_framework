@@ -1,3 +1,5 @@
+[![ROS 2 Jazzy CI](https://github.com/Beam-and-Spyrosoft/ros2_test_framework/actions/workflows/ros2-pull-request.yml/badge.svg?branch=main)](https://github.com/Beam-and-Spyrosoft/ros2_test_framework/actions/workflows/ros2-pull-request.yml)
+
 # ROS 2 Testing Framework
 
 This repository provides a suite of tools and utilities tailored for testing and debugging ROS 2 (Robot Operating System) applications. It aims to simplify the development and testing workflows for ROS 2-based projects, particularly in scenarios involving unit and integration testing. 

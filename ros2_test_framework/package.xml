@@ -15,6 +15,7 @@
 
   <export>
     <build_type>ament_cmake</build_type>
+    <rosdoc2>rosdoc2.yaml</rosdoc2>
     <quality_level_status content="LEVEL_4"/>
   </export>
 </package>

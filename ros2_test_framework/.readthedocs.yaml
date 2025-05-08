@@ -1,0 +1,24 @@
+# .readthedocs.yaml
+version: 2
+
+# Set the OS, Python version and other tools you might need
+build:
+  os: ubuntu-24.04
+  tools:
+    python: "3.12" # Or your preferred Python version for Sphinx
+  jobs:
+    pre_build:
+      # Install Doxygen and Graphviz
+      - sudo apt-get update
+      - sudo apt-get install -y doxygen graphviz
+      # Run Doxygen to generate XML (adjust path to Doxyfile if needed)
+      - doxygen Doxyfile # Or "doxygen doc/Doxyfile" if it's in a doc subdir
+
+# Build documentation in the docs/ directory with Sphinx
+sphinx:
+  configuration: doc/source/conf.py # Path to your conf.py
+
+# Optionally declare the Python requirements required to build your docs
+python:
+  install:
+    - requirements: doc/requirements.txt

@@ -34,3 +34,7 @@ compile_commands.json
 *.orig
 *.rej
 *.conda
+doxygen_output/
+cross_reference/
+docs_build/
+docs_output/
