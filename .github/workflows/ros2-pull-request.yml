@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Global variables
+env:
+  REQUIRED_LINES_COVERAGE: 60.0
+  REQUIRED_FUNCTION_COVERAGE: 60.0
+
 jobs:
   build-and-test-ubuntu:
     strategy:
@@ -26,7 +31,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y python3-colcon-common-extensions python3-rosdep python3-vcstool git \
-            libboost-all-dev libgmock-dev python3-pip
+          libboost-all-dev libgmock-dev python3-pip lcov gcovr
 
       - name: Update rosdep database
         run: rosdep update || true
@@ -35,19 +40,18 @@ jobs:
         run: |
           rosdep install --from-paths . --ignore-src -r -y
 
-      - name: Build project
+      - name: Build project with coverage flags
         shell: bash
         run: |
           . /opt/ros/jazzy/setup.bash
-          colcon build --cmake-args -DBUILD_TESTING=On
+          colcon build --cmake-args -DBUILD_TESTING=On -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage" -DCMAKE_C_FLAGS="--coverage -fprofile-arcs -ftest-coverage" -DCMAKE_EXE_LINKER_FLAGS="-lgcov --coverage"
 
       - name: Run tests
         shell: bash
         run: |
           . /opt/ros/jazzy/setup.bash
           . install/setup.bash
-          colcon test --packages-select ros2_test_framework_examples --event-handlers console_cohesion+
-          colcon test-result
+          colcon test --packages-select ros2_test_framework ros2_test_framework_examples --event-handlers console_cohesion+
 
       - name: Upload test results
         if: ${{ !env.ACT && always() }}
@@ -55,3 +59,130 @@ jobs:
         with:
           name: test-results-ubuntu-${{ matrix.arch }}
           path: build/ros2_test_framework_examples/test_results
+
+      - name: Verify test results
+        shell: bash
+        run: |
+          . /opt/ros/jazzy/setup.bash
+          test_results=$(colcon test-result --verbose | tee /dev/stderr)
+          if echo "$test_results" | grep -q "0 errors, 0 failures"; then
+            echo "[  PASSED  ] All tests passed with no errors and no failures."
+            echo "TESTS_PASSED=true" >> $GITHUB_ENV
+          else
+            echo "[  FAILED  ] There were test errors or failures."
+            echo "TESTS_PASSED=false" >> $GITHUB_ENV
+            exit 1
+          fi
+
+      - name: Generate coverage report for framework library
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          lcov --no-external --capture --directory . --output-file all_coverage.info --ignore-errors mismatch,source,unused 2>/dev/null || true
+          lcov --extract all_coverage.info "*/ros2_test_framework/*" --ignore-errors source,empty,unused -o framework_tmp.info 2>/dev/null || true
+          lcov --remove framework_tmp.info "*/examples/*" "*/test/*" "*/tests/*" "*/test_composition/*" \
+              --ignore-errors source,empty,unused -o framework_filtered.info 2>/dev/null || true
+
+          genhtml -o coverage_report_framework framework_filtered.info --ignore-errors source 2>/dev/null || true
+
+          if [ -s framework_filtered.info ]; then
+            echo "Overall coverage rate:"
+            COVERAGE_SUMMARY=$(lcov --summary framework_filtered.info 2>&1 | grep -E 'lines|functions')
+            echo "$COVERAGE_SUMMARY"
+
+            FRAMEWORK_LINES=$(echo "$COVERAGE_SUMMARY" | grep 'lines' | awk '{gsub(/%/,""); if ($2 > 100.0) print "100.0"; else print $2}' || echo "0.0")
+            FRAMEWORK_FUNCTIONS=$(echo "$COVERAGE_SUMMARY" | grep 'functions' | awk '{gsub(/%/,""); if ($2 > 100.0) print "100.0"; else print $2}' || echo "0.0")
+
+            echo "Calculating coverage metrics..."
+            echo "Framework library coverage: ${FRAMEWORK_LINES}% (lines), ${FRAMEWORK_FUNCTIONS}% (functions)"
+
+            echo "FRAMEWORK_LINES_COVERAGE=${FRAMEWORK_LINES}" >> $GITHUB_ENV
+            echo "FRAMEWORK_FUNCTIONS_COVERAGE=${FRAMEWORK_FUNCTIONS}" >> $GITHUB_ENV
+            echo "LINES_COVERAGE=${FRAMEWORK_LINES}" >> $GITHUB_ENV
+            echo "FUNCTIONS_COVERAGE=${FRAMEWORK_FUNCTIONS}" >> $GITHUB_ENV
+          else
+            echo "No coverage data available"
+            echo "FRAMEWORK_LINES_COVERAGE=0.0" >> $GITHUB_ENV
+            echo "FRAMEWORK_FUNCTIONS_COVERAGE=0.0" >> $GITHUB_ENV
+            echo "LINES_COVERAGE=0.0" >> $GITHUB_ENV
+            echo "FUNCTIONS_COVERAGE=0.0" >> $GITHUB_ENV
+          fi
+          mkdir -p coverage_artifacts
+          [ -d "coverage_report_framework" ] && cp -r coverage_report_framework coverage_artifacts/ || \
+            mkdir -p coverage_artifacts/coverage_report_framework
+
+          {
+            echo "ROS2 TEST FRAMEWORK LIBRARY COVERAGE SUMMARY"
+            echo "============================================"
+            echo ""
+            echo "Overall coverage:"
+            echo "  Lines:     ${FRAMEWORK_LINES:-0.0}%"
+            echo "  Functions: ${FRAMEWORK_FUNCTIONS:-0.0}%"
+          } > coverage_artifacts/framework_coverage_summary.txt
+          exit 0
+
+      - name: Upload coverage reports
+        if: ${{ !env.ACT && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: framework-coverage-report-${{ matrix.arch }}
+          path: coverage_artifacts
+          if-no-files-found: warn
+
+      - name: Upload HTML coverage report
+        if: ${{ !env.ACT && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html-report-${{ matrix.arch }}
+          path: coverage_report_framework
+          if-no-files-found: warn
+
+      - name: Check test status
+        if: always()
+        run: |
+          if [ "${TESTS_PASSED}" = "true" ]; then
+            echo "✅ All tests passed successfully"
+          else
+            echo "❌ Tests failed or had errors"
+            exit 1
+          fi
+
+      - name: Check coverage score meets thresholds (lines=${{ env.REQUIRED_LINES_COVERAGE }}%, functions=${{ env.REQUIRED_FUNCTION_COVERAGE }}%)
+        shell: bash
+        run: |
+          FRAMEWORK_LINES="${FRAMEWORK_LINES_COVERAGE:-0.0}"
+          FRAMEWORK_FUNCTIONS="${FRAMEWORK_FUNCTIONS_COVERAGE:-0.0}"
+          LINES_THRESHOLD="${REQUIRED_LINES_COVERAGE:-0.0}"
+          FUNCTIONS_THRESHOLD="${REQUIRED_FUNCTION_COVERAGE:-0.0}"
+          echo "Framework library coverage: ${FRAMEWORK_LINES}% lines, ${FRAMEWORK_FUNCTIONS}% functions"
+          echo "Required thresholds: ${LINES_THRESHOLD}% lines, ${FUNCTIONS_THRESHOLD}% functions"
+
+          if ! command -v awk &> /dev/null; then
+            echo "awk not found, installing..."
+            apt-get update -qq && apt-get install -qq -y gawk
+          fi
+
+          FRAMEWORK_LINES_FLOAT=$(printf "%.2f" "$FRAMEWORK_LINES")
+          FRAMEWORK_FUNCTIONS_FLOAT=$(printf "%.2f" "$FRAMEWORK_FUNCTIONS")
+          FAILED=0
+
+          if awk "BEGIN {exit !($FRAMEWORK_LINES_FLOAT < $LINES_THRESHOLD)}"; then
+            echo "❌ Line coverage (${FRAMEWORK_LINES}%) is below the required threshold (${LINES_THRESHOLD}%)"
+            FAILED=1
+          else
+            echo "✅ Line coverage (${FRAMEWORK_LINES}%) meets the required threshold (${LINES_THRESHOLD}%)"
+          fi
+
+          if awk "BEGIN {exit !($FRAMEWORK_FUNCTIONS_FLOAT < $FUNCTIONS_THRESHOLD)}"; then
+            echo "❌ Function coverage (${FRAMEWORK_FUNCTIONS}%) is below the required threshold (${FUNCTIONS_THRESHOLD}%)"
+            FAILED=1
+          else
+            echo "✅ Function coverage (${FRAMEWORK_FUNCTIONS}%) meets the required threshold (${FUNCTIONS_THRESHOLD}%)"
+          fi
+
+          if [ $FAILED -eq 1 ]; then
+            echo "❌ Overall: Code coverage does not meet all required thresholds."
+            exit 1
+          fi
+          echo "✅ Overall: Code coverage meets all required thresholds."
+          exit 0
