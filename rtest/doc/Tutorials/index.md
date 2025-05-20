@@ -1,20 +1,22 @@
 # Tutorials
 
-The tutorials are a collection of step-by-step instructions meant to help you get started with the ROS 2 Testing Framework.
+The tutorials are a collection of step-by-step instructions meant to help you get started with the RTEST framework.
 They cover a variety of topics, from basic usage to advanced features, and are designed to be easy to follow.
 
-The best way to approach the tutorials is to walk through them for the first time in order, as they build off of each other and are not meant to be comprehensive documentation.
+There is no strict rule to follow the tutorial in order, but it is suggested to start with the Subscription Test.
 
 ```{toctree}
 ---
 maxdepth: 2
 titlesonly: true
 ---
-Subscriber-Test
-Publisher-Test
-Timer-Test
-Clock-Test
-Service-Test
+Subscription
+Publisher
+Timer
+Service
+Client
+Logger
+Clock
 ```
 
 

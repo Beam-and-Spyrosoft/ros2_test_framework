@@ -16,7 +16,6 @@
 // @author    Sławomir Cielepak (slawomir.cielepak@gmail.com)
 // @date      2024-12-04
 
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <rclcpp/rclcpp.hpp>
 
