@@ -1,9 +1,8 @@
 # Tutorials
 
-The tutorials are a collection of step-by-step instructions meant to help you get started with the ROS 2 Testing Framework.
-They cover a variety of topics, from basic usage to advanced features, and are designed to be easy to follow.
+These step-by-step tutorials will help you get started with RTEST. They cover various testing scenarios and are designed to be followed in sequence.
 
-The best way to approach the tutorials is to walk through them for the first time in order, as they build off of each other and are not meant to be comprehensive documentation.
+## Tutorial Sequence
 
 ```{toctree}
 ---
@@ -17,7 +16,35 @@ Clock-Test
 Service-Test
 ```
 
+## Quick Start Example
 
-## Examples
+Here's a simple example of testing a ROS 2 publisher node:
 
-All examples code can be found under [C++ minimal examples](https://github.com/Beam-and-Spyrosoft/rtest/tree/main/examples/test)
+```cpp
+#include "my_package/publisher_node.hpp"
+
+TEST(PublisherNodeTest, PublishesExpectedMessage)
+{
+  auto node = std::make_shared<PublisherNode>();
+  
+  /// Retrieve the publisher created by the Node
+  auto publisher = rtest::findPublisher<std_msgs::msg::String>(node, "/test_topic");
+  
+  // Check that the Node actually created the Publisher with topic: "/test_topic"
+  ASSERT_TRUE(publisher);
+  
+  /// Set up expectation that the Node will publish a message when triggered
+  auto expectedMsg = std_msgs::msg::String();
+  expectedMsg.set__data("test_msg");
+  EXPECT_CALL(*publisher, publish(expectedMsg)).Times(1);
+  
+  // Trigger the node
+  node->publishMsg();
+}
+```
+
+## Examples Repository
+
+All example code can be found in the [C++ minimal examples](https://github.com/Beam-and-Spyrosoft/rtest/tree/main/examples/test) directory.
+
+For a more comprehensive example, see the [publisher/subscriber tests](https://github.com/Beam-and-Spyrosoft/rtest/blob/main/examples/test/pub_sub_tests.cpp).

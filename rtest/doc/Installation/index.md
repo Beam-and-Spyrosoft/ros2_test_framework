@@ -1,35 +1,68 @@
 # Installation
 
+RTEST is distributed as an open source project and can be installed from source or downloaded as a pre-built package.
 
-RTEST is distributed as an open source project and can be installed from source or downloaded as a pre-built package. The installation process is straightforward and can be done in a few simple steps.
-To get started with RTEST, you can follow the instructions below to install it in your ROS 2 environment.
-The installation process is designed to be simple and quick, allowing you to start writing and running tests in no time.
+## Binary Packages
 
-
-## Binary packages
-
-Binaries are only created for the Tier 1 operating systems listed in [REP-2000](https://www.ros.org/reps/rep-2000.html#support-tiers).
-
-We provide ROS 2 binary packages for the following platforms:
+Binaries are available for the Tier 1 operating systems listed in [REP-2000](https://www.ros.org/reps/rep-2000.html#support-tiers).
 
 - [Ubuntu 24.04 (Noble Numbat)](https://github.com/Beam-and-Spyrosoft/rtest/releases/)
 
+### Using apt (recommended)
+
+```bash
+$ # Add the repository
+$ sudo apt update && sudo apt install -y software-properties-common
+$ sudo add-apt-repository ppa:beam-and-spyrosoft/rtest
+$ sudo apt update
+
+$ # Install RTEST
+$ sudo apt install ros-jazzy-rtest
+```
 
 ## Install From Source
 
+1. **Create a ROS 2 workspace (if you don't have one already)**:
 
-RTEST can be installed from source. We support building RTEST from source on the Tier 1 operating systems. The following steps outline how to install RTEST from source in your ROS 2 environment.
-
-1. **Clone the RTEST repository**:
-
-Open a terminal and navigate to your ROS 2 workspace (e.g., `~/ros2_ws/src`). Then, clone the RTEST repository using the following command:
-
-```shell
-$ git clone https://github.com/yourusername/rtest.git
+```bash
+$ mkdir -p ~/ros2_ws/src
 ```
 
-2. **Build and run the test examples**:
+2. **Clone the RTEST repository**:
 
-```shell
-$ colcon build && colcon test --packages-select rtest_examples --event-handlers console_cohesion+
+```bash
+$ cd ~/ros2_ws/src
+$ git clone https://github.com/Beam-and-Spyrosoft/rtest.git
+```
+
+3. **Build the package**:
+
+```bash
+$ cd ~/ros2_ws
+$ colcon build
+```
+
+4. **Verify installation**:
+
+```bash
+$ source ~/ros2_ws/install/setup.bash
+$ colcon test --packages-select rtest_examples --event-handlers console_cohesion+
+```
+
+## Adding RTEST to Your Package
+
+1. Add dependency in `package.xml`:
+```xml
+<test_depend>rtest</test_depend>
+```
+
+2. Configure CMake:
+```cmake
+find_package(rtest REQUIRED)
+
+ament_add_gmock(my_node_test
+  test/my_node_test.cpp
+  src/my_node.cpp  # Include source directly
+)
+target_link_libraries(my_node_test rtest::rtest)
 ```

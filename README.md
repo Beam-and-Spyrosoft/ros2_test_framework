@@ -15,6 +15,28 @@ The tools in this repository address challenges posed by ROS 2's inter-process c
 
 This framework enables writing reliable, fully repeatable unit tests (and more) for C++ ROS 2 implementations, eliminating the issue of so-called "flaky tests".
 
+## Quick Example
+
+```cpp
+TEST_F(PubSubTest, PublishIfSubscriptionCountNonZeroTest)
+{
+  auto node = std::make_shared<test_composition::Publisher>(opts);
+  auto publisher = rtest::findPublisher<std_msgs::msg::String>(node, "/test_topic");
+
+  /// Set subscription count to 1
+  publisher->setSubscriptionCount(1UL);
+
+  auto expectedMsg = std_msgs::msg::String();
+  expectedMsg.set__data("if_subscribers_listening");
+
+  /// Set up expectation that the Node will publish a message when the subscription count is 1
+  EXPECT_CALL(*publisher, publish(expectedMsg)).Times(1);
+  node->publishIfSubscribersListening();
+}
+```
+
+This example demonstrates how RTEST makes it easy to test ROS 2 nodes with precise control over publishers, subscribers, and message flow. For more comprehensive examples, see the [examples folder](examples/test/).
+
 ## Contributors
 This repository and tooling was initally developed as a collaboration between [BEAM](https://beam.global/) and [Spyrosoft](https://spyro-soft.com/); and is maintained as a collaboration.
 
