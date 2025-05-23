@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(rtest_examples 
-  LANGUAGES CXX
+  LANGUAGES C CXX
   VERSION 0.1.0
 )
 
@@ -19,9 +19,18 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(GTest CONFIG REQUIRED COMPONENTS GTest GMock)
+find_package(rosidl_default_generators REQUIRED)
+
+# Generate action interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "action/MoveRobot.action"
+)
+
+rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 
 # Publisher component
 add_library(publisher_component SHARED src/publisher.cpp)
@@ -93,6 +102,7 @@ target_include_directories(action_server_component PUBLIC
 ament_target_dependencies(action_server_component
   rclcpp
   rclcpp_components
+  rclcpp_action
   std_msgs
   std_srvs
 )
@@ -108,6 +118,7 @@ target_include_directories(action_client_component PUBLIC
 ament_target_dependencies(action_client_component
   rclcpp
   rclcpp_components
+  rclcpp_action
   std_msgs
   std_srvs
 )

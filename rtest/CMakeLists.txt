@@ -178,6 +178,8 @@ install(
     service_mock
     service_client_mock
     timer_mock
+    action_server_mock
+    action_client_mock
   EXPORT ${PROJECT_NAME}_targets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -185,7 +187,7 @@ install(
 )
 
 ament_export_targets(${PROJECT_NAME}_targets HAS_LIBRARY_TARGET)
-ament_export_dependencies(rclcpp)
+ament_export_dependencies(rclcpp rclcpp_action)
 
 if(BUILD_TESTING)
   # Option to enable clang-tidy tests (default: disabled)
