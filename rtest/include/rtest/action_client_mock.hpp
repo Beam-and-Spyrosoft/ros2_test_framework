@@ -3,6 +3,8 @@
 #include <gmock/gmock.h>
 #include <rtest/static_registry.hpp>
 #include <rtest/action_client_base.hpp>
+#include "rclcpp/node_interfaces/node_base_interface.hpp"
+#include <future>
 
 #define TEST_TOOLS_MAKE_SHARED_DEFINITION(...) \
   template<typename ... Args> \
@@ -23,14 +25,37 @@
 namespace rclcpp_action {
 
 template<typename ActionT>
+class ClientGoalHandle {
+public:
+  using Result = typename ActionT::Result;
+  using Feedback = typename ActionT::Feedback;
+  using Goal = typename ActionT::Goal;
+  using SharedPtr = std::shared_ptr<ClientGoalHandle>;
+
+  struct WrappedResult {
+    ResultCode code;
+    std::shared_ptr<Result> result;
+  };
+
+  using FeedbackCallback = std::function<void(SharedPtr, std::shared_ptr<const Feedback>)>;
+  using ResultCallback = std::function<void(const WrappedResult&)>;
+
+  FeedbackCallback feedback_callback;
+  ResultCallback result_callback;
+};
+
+template<typename ActionT>
 class Client : public ClientBase,
               public std::enable_shared_from_this<Client<ActionT>> {
 public:
   using Goal = typename ActionT::Goal;
   using Feedback = typename ActionT::Feedback;
+  using Result = typename ActionT::Result;
   using GoalHandle = ClientGoalHandle<ActionT>;
+  using GoalHandleSharedPtr = typename GoalHandle::SharedPtr;
   using WrappedResult = typename GoalHandle::WrappedResult;
-  using GoalResponseCallback = std::function<void (typename GoalHandle::SharedPtr)>;
+
+  using GoalResponseCallback = std::function<void(GoalHandleSharedPtr)>;
   using FeedbackCallback = typename GoalHandle::FeedbackCallback;
   using ResultCallback = typename GoalHandle::ResultCallback;
 
@@ -49,18 +74,11 @@ public:
     rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
     rclcpp::node_interfaces::NodeGraphInterface::SharedPtr node_graph,
     rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr node_logging,
-    const std::string & action_name,
-    const rcl_action_client_options_t & options = rcl_action_client_get_default_options())
-  : ClientBase(
-      node_base,
-      node_graph,
-      node_logging,
-      action_name,
-      rosidl_typesupport_cpp::get_action_type_support_handle<ActionT>(),
-      options)
+    const std::string & action_name)
+  : node_base_(node_base), action_name_(action_name)
   {
-    node_base_ = node_base;
-    action_name_ = action_name;
+    (void)node_graph;
+    (void)node_logging;
   }
 
   void post_init_setup() {
@@ -68,6 +86,24 @@ public:
       node_base_->get_fully_qualified_name(),
       action_name_,
       this->shared_from_this());
+  }
+
+  std::shared_future<GoalHandleSharedPtr> async_send_goal(const Goal& goal, const SendGoalOptions& options) {
+    (void)goal;
+    (void)options;
+    std::promise<GoalHandleSharedPtr> promise;
+    promise.set_value(nullptr);
+    return promise.get_future().share();
+  }
+
+  std::shared_future<WrappedResult> async_get_result(const GoalHandleSharedPtr& goal_handle) {
+    (void)goal_handle;
+    std::promise<WrappedResult> promise;
+    WrappedResult result;
+    result.code = ResultCode::SUCCEEDED;
+    result.result = std::make_shared<Result>();
+    promise.set_value(result);
+    return promise.get_future().share();
   }
 
 private:
@@ -100,10 +136,6 @@ public:
 
   MOCK_METHOD(std::shared_future<WrappedResult>,
               async_get_result,
-              (const GoalHandleSharedPtr&), ());
-
-  MOCK_METHOD(std::shared_future<typename ActionT::Impl::CancelGoalService::Response::SharedPtr>,
-              async_cancel_goal,
               (const GoalHandleSharedPtr&), ());
 
   MOCK_METHOD(bool,
@@ -149,6 +181,13 @@ std::shared_ptr<ActionClientMock<ActionT>> findActionClient(
     }
   }
   return client_mock;
+}
+
+template<typename ActionT, typename NodeT>
+std::shared_ptr<ActionClientMock<ActionT>> findActionClient(
+    const std::shared_ptr<NodeT>& node,
+    const std::string& actionName) {
+  return findActionClient<ActionT>(node->get_fully_qualified_name(), actionName);
 }
 
 } // namespace rtest

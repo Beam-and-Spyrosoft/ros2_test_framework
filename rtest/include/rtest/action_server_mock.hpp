@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 #include <rtest/static_registry.hpp>
 #include <rtest/action_server_base.hpp>
+#include "rclcpp/node_interfaces/node_base_interface.hpp"
 
 #define TEST_TOOLS_MAKE_SHARED_DEFINITION(...) \
   template<typename ... Args> \
@@ -23,6 +24,26 @@
 namespace rclcpp_action {
 
 template<typename ActionT>
+class ServerGoalHandle {
+public:
+  using Result = typename ActionT::Result;
+  using Feedback = typename ActionT::Feedback;
+  using Goal = typename ActionT::Goal;
+
+  std::shared_ptr<const Goal> get_goal() const { return goal_; }
+  bool is_canceling() const { return canceling_; }
+
+  void publish_feedback(std::shared_ptr<const Feedback> feedback) { (void)feedback; }
+  void succeed(std::shared_ptr<Result> result) { (void)result; }
+  void abort(std::shared_ptr<Result> result) { (void)result; }
+  void canceled(std::shared_ptr<Result> result) { (void)result; }
+
+private:
+  std::shared_ptr<const Goal> goal_;
+  bool canceling_ = false;
+};
+
+template<typename ActionT>
 class Server : public ServerBase,
               public std::enable_shared_from_this<Server<ActionT>> {
 public:
@@ -30,42 +51,24 @@ public:
   using Feedback = typename ActionT::Feedback;
   using GoalHandle = ServerGoalHandle<ActionT>;
   using GoalHandleSharedPtr = std::shared_ptr<GoalHandle>;
-  using GoalResponse = typename ActionT::Impl::SendGoalService::Response;
-  using CancelResponse = typename ActionT::Impl::CancelGoalService::Response;
+  using GoalResponse = rclcpp_action::GoalResponse;
+  using CancelResponse = rclcpp_action::CancelResponse;
 
-  // using GoalCallback = std::function<GoalResponse::SharedPtr(
-  //   const GoalUUID &, std::shared_ptr<const Goal>)>;
-  // using CancelCallback = std::function<CancelResponse::SharedPtr(
-  //   const std::shared_ptr<GoalHandle>)>;
-  // using AcceptedCallback = std::function<void(const std::shared_ptr<GoalHandle>)>;
-  /// Signature of a callback that accepts or rejects goal requests.
   using GoalCallback = std::function<GoalResponse(
         const GoalUUID &,
-        std::shared_ptr<const typename ActionT::Goal>)>;
-  /// Signature of a callback that accepts or rejects requests to cancel a goal.
-  using CancelCallback = std::function<CancelResponse(std::shared_ptr<ServerGoalHandle<ActionT>>)>;
-  /// Signature of a callback that is used to notify when the goal has been accepted.
-  using AcceptedCallback = std::function<void (std::shared_ptr<ServerGoalHandle<ActionT>>)>;
-
+        std::shared_ptr<const Goal>)>;
+  using CancelCallback = std::function<CancelResponse(GoalHandleSharedPtr)>;
+  using AcceptedCallback = std::function<void(GoalHandleSharedPtr)>;
 
   Server(
     rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base,
     const std::string & action_name,
     GoalCallback handle_goal,
     CancelCallback handle_cancel,
-    AcceptedCallback handle_accepted,
-    const rcl_action_server_options_t & options = rcl_action_server_get_default_options())
-  : ServerBase(
-      node_base,
-      action_name,
-      rosidl_typesupport_cpp::get_action_type_support_handle<ActionT>(),
-      options)
+    AcceptedCallback handle_accepted)
+  : node_base_(node_base), action_name_(action_name),
+    handle_goal_(handle_goal), handle_cancel_(handle_cancel), handle_accepted_(handle_accepted)
   {
-    node_base_ = node_base;
-    action_name_ = action_name;
-    handle_goal_ = handle_goal;
-    handle_cancel_ = handle_cancel;
-    handle_accepted_ = handle_accepted;
   }
 
   void post_init_setup() {
@@ -73,19 +76,6 @@ public:
       node_base_->get_fully_qualified_name(),
       action_name_,
       this->shared_from_this());
-  }
-
-  // Forwarding methods for testing
-  void publish_feedback(
-      const typename ActionT::Feedback& feedback,
-      const GoalHandleSharedPtr& goal_handle) {
-    if (goal_handle) {
-      goal_handle->publish_feedback(feedback);
-    }
-  }
-
-  void publish_status() {
-    ServerBase::publish_status();
   }
 
 private:
@@ -127,12 +117,13 @@ public:
               handle_accepted,
               (const GoalHandleSharedPtr&), ());
 
-  // Helper methods
+  // Helper methods for testing
   void publish_feedback(
       const typename ActionT::Feedback& feedback,
       const GoalHandleSharedPtr& goal_handle) {
     if (goal_handle) {
-      goal_handle->publish_feedback(feedback);
+      auto feedback_ptr = std::make_shared<const typename ActionT::Feedback>(feedback);
+      goal_handle->publish_feedback(feedback_ptr);
     }
   }
 
