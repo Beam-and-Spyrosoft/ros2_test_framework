@@ -16,8 +16,11 @@ find_package(ament_cmake REQUIRED)
 find_package(gmock_vendor REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(GTest CONFIG REQUIRED COMPONENTS GTest GMock)
-
-
+find_package(rclcpp_action REQUIRED)
+find_package(rcpputils REQUIRED)
+find_package(action_msgs REQUIRED)
+find_package(rcl REQUIRED)
+find_package(rcl_action REQUIRED)
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
@@ -114,6 +117,63 @@ target_link_libraries(service_client_mock INTERFACE
 )
 
 target_compile_definitions(service_client_mock INTERFACE RTEST_CLIENT_MOCK)
+
+# Action mock library
+add_library(action_server_mock
+  src/action_server_base.cpp
+)
+add_library(${PROJECT_NAME}::action_server_mock ALIAS action_server_mock)
+target_include_directories(action_server_mock
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(action_server_mock PUBLIC
+  ${PROJECT_NAME}::rtest_common
+  rcl::rcl
+  rcl_action::rcl_action
+  rclcpp_action::rclcpp_action
+)
+
+ament_target_dependencies(action_server_mock
+  PUBLIC
+    rcl_action
+    rcpputils
+    rclcpp
+    rclcpp_action
+    action_msgs
+)
+
+target_compile_definitions(action_server_mock PUBLIC RTEST_ACTION_SERVER_MOCK)
+
+add_library(action_client_mock
+  src/action_client_base.cpp
+)
+add_library(${PROJECT_NAME}::action_client_mock ALIAS action_client_mock)
+target_include_directories(action_client_mock
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(action_client_mock PUBLIC
+  ${PROJECT_NAME}::rtest_common
+  rcl::rcl
+  rcl_action::rcl_action
+  rclcpp_action::rclcpp_action
+)
+
+ament_target_dependencies(action_client_mock
+  PUBLIC
+    rcl_action
+    rcpputils
+    rclcpp
+    rclcpp_action
+    action_msgs
+)
+
+target_compile_definitions(action_client_mock PUBLIC RTEST_ACTION_CLIENT_MOCK)
 
 # Timer mock library
 add_library(timer_mock INTERFACE)

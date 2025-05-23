@@ -40,6 +40,12 @@ class ServiceBase;
 class ClientBase;
 }  // namespace rclcpp
 
+
+namespace rclcpp_action {
+class ServerBase;
+class ClientBase;
+}  // namespace rclcpp_action
+
 namespace rtest
 {
 
@@ -62,6 +68,9 @@ public:
   using ServiceNameT = std::string;
   using ServiceToServicesMapT = std::map<ServiceNameT, std::weak_ptr<rclcpp::ServiceBase>>;
   using ServiceToClientsMapT = std::map<ServiceNameT, std::weak_ptr<rclcpp::ClientBase>>;
+  using ActionNameT = std::string;
+  using ActionToServersMapT = std::map<ActionNameT, std::weak_ptr<rclcpp_action::ServerBase>>;
+  using ActionToClientsMapT = std::map<ActionNameT, std::weak_ptr<rclcpp_action::ClientBase>>;
 
   /**
    * @brief Get the static instance of the Mock Registry.
@@ -299,6 +308,44 @@ public:
     return findEntity(serviceClientsRegistry_[nodeName], serviceName);
   }
 
+  template <typename ActionT>
+  void registerActionServer(
+      const FullyQualifiedNodeNameT& nodeName,
+      const ActionNameT& actionName,
+      std::weak_ptr<rclcpp_action::ServerBase> server) {
+    if (verbose_) {
+      std::cout << "StaticMocksRegistry::registerActionServer<"
+                << boost::typeindex::type_id<ActionT>().pretty_name()
+                << ">(\"" << nodeName << "\", \"" << actionName << "\")\n";
+    }
+    registerEntity(actionServersRegistry_[nodeName], actionName, server);
+  }
+
+  template <typename ActionT>
+  void registerActionClient(
+      const FullyQualifiedNodeNameT& nodeName,
+      const ActionNameT& actionName,
+      std::weak_ptr<rclcpp_action::ClientBase> client) {
+    if (verbose_) {
+      std::cout << "StaticMocksRegistry::registerActionClient<"
+                << boost::typeindex::type_id<ActionT>().pretty_name()
+                << ">(\"" << nodeName << "\", \"" << actionName << "\")\n";
+    }
+    registerEntity(actionClientsRegistry_[nodeName], actionName, client);
+  }
+
+  std::weak_ptr<rclcpp_action::ServerBase> getActionServer(
+      const FullyQualifiedNodeNameT& nodeName,
+      const ActionNameT& actionName) {
+    return findEntity(actionServersRegistry_[nodeName], actionName);
+  }
+
+  std::weak_ptr<rclcpp_action::ClientBase> getActionClient(
+      const FullyQualifiedNodeNameT& nodeName,
+      const ActionNameT& actionName) {
+    return findEntity(actionClientsRegistry_[nodeName], actionName);
+  }
+
 private:
   StaticMocksRegistry() {}
 
@@ -330,6 +377,8 @@ private:
   std::map<FullyQualifiedNodeNameT, std::vector<std::weak_ptr<rclcpp::TimerBase>>> timersRegistry_;
   std::map<FullyQualifiedNodeNameT, ServiceToServicesMapT> servicesRegistry_;
   std::map<FullyQualifiedNodeNameT, ServiceToClientsMapT> serviceClientsRegistry_;
+  std::map<FullyQualifiedNodeNameT, ActionToServersMapT> actionServersRegistry_;
+  std::map<FullyQualifiedNodeNameT, ActionToClientsMapT> actionClientsRegistry_;
 
   std::map<void *, std::weak_ptr<MockBase>> mockRegistry_;
 

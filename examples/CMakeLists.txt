@@ -82,6 +82,38 @@ ament_target_dependencies(service_client_component
 )
 rclcpp_components_register_nodes(service_client_component "test_composition::ServiceClient")
 
+
+# Action server component
+add_library(action_server_component SHARED src/action_server.cpp)
+target_compile_definitions(action_server_component PRIVATE "COMPOSITION_BUILDING_DLL")
+target_include_directories(action_server_component PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(action_server_component
+  rclcpp
+  rclcpp_components
+  std_msgs
+  std_srvs
+)
+rclcpp_components_register_nodes(action_server_component "test_composition::ActionServer")
+
+# Action client component
+add_library(action_client_component SHARED src/action_client.cc)
+target_compile_definitions(action_client_component PRIVATE "COMPOSITION_BUILDING_DLL")
+target_include_directories(action_client_component PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(action_client_component
+  rclcpp
+  rclcpp_components
+  std_msgs
+  std_srvs
+)
+rclcpp_components_register_nodes(action_client_component "test_composition::ActionClient")
+
+
 # Manual/static Node composition
 add_executable(manual_composition src/manual_composition.cpp)
 target_link_libraries(manual_composition
@@ -89,6 +121,8 @@ target_link_libraries(manual_composition
   subscriber_component
   service_provider_component
   service_client_component
+  action_server_component
+  action_client_component
 )
 ament_target_dependencies(manual_composition
   rclcpp
@@ -99,6 +133,8 @@ install(TARGETS
   subscriber_component
   service_provider_component
   service_client_component
+  action_server_component
+  action_client_component
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -142,6 +178,20 @@ if(BUILD_TESTING)
         std_srvs
     )
     test_tools_add_doubles(service_client_component
+      AMENT_DEPENDENCIES
+        rclcpp
+        rclcpp_components
+        std_msgs
+        std_srvs
+    )
+    test_tools_add_doubles(action_server_component
+    AMENT_DEPENDENCIES
+      rclcpp
+      rclcpp_components
+      std_msgs
+      std_srvs
+    )
+    test_tools_add_doubles(action_client_component
       AMENT_DEPENDENCIES
         rclcpp
         rclcpp_components

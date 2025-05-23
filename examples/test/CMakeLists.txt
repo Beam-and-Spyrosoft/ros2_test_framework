@@ -17,4 +17,6 @@ target_link_libraries(${PROJECT_NAME}-test
   ${PROJECT_NAME}::subscriber_component_test_doubles
   ${PROJECT_NAME}::service_provider_component_test_doubles
   ${PROJECT_NAME}::service_client_component_test_doubles
+  ${PROJECT_NAME}::action_server_component_test_doubles
+  ${PROJECT_NAME}::action_client_component_test_doubles
 )

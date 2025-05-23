@@ -36,6 +36,14 @@
 #define RCLCPP__CLIENT_HPP_
 #endif
 
+#ifdef RTEST_ACTION_SERVER_MOCK
+#define RCLCPP_ACTION__SERVER_HPP_
+#endif
+
+#ifdef RTEST_ACTION_CLIENT_MOCK
+#define RCLCPP_ACTION__CLIENT_HPP_
+#endif
+
 #ifdef RTEST_TIMER_MOCK
 #define RCLCPP__CREATE_TIMER_HPP_
 #endif
