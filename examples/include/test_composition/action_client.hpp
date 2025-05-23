@@ -1,7 +1,7 @@
 #pragma once
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <test_composition/action/move_robot.hpp>
+#include <rtest_examples/action/move_robot.hpp>
 
 namespace test_composition {
 
