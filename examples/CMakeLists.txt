@@ -99,7 +99,7 @@ ament_target_dependencies(action_server_component
 rclcpp_components_register_nodes(action_server_component "test_composition::ActionServer")
 
 # Action client component
-add_library(action_client_component SHARED src/action_client.cc)
+add_library(action_client_component SHARED src/action_client.cpp)
 target_compile_definitions(action_client_component PRIVATE "COMPOSITION_BUILDING_DLL")
 target_include_directories(action_client_component PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
