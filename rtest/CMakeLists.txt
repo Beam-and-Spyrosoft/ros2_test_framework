@@ -48,11 +48,11 @@ endif()
 
 
 ament_target_dependencies(rtest_common
-  PUBLIC rclcpp gmock_vendor
+  PUBLIC rclcpp rclcpp_action gmock_vendor
 )
 
 ament_export_dependencies(
-  rclcpp gmock_vendor
+  rclcpp rclcpp_action gmock_vendor
 )
 
 
@@ -129,6 +129,9 @@ target_link_libraries(action_server_mock INTERFACE
   ${PROJECT_NAME}::rtest_common
 )
 
+#Add explicit ament dependency for action mock
+ament_target_dependencies(action_server_mock INTERFACE rclcpp_action)
+
 target_compile_definitions(action_server_mock INTERFACE RTEST_ACTION_SERVER_MOCK)
 
 add_library(action_client_mock INTERFACE)
@@ -142,6 +145,9 @@ target_include_directories(action_client_mock
 target_link_libraries(action_client_mock INTERFACE
   ${PROJECT_NAME}::rtest_common
 )
+
+#Add explicit ament dependency for action mock
+ament_target_dependencies(action_client_mock INTERFACE rclcpp_action)
 
 target_compile_definitions(action_client_mock INTERFACE RTEST_ACTION_CLIENT_MOCK)
 

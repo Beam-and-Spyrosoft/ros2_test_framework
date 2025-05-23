@@ -1,6 +1,8 @@
 #include "test_composition/action_server.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 
+#include <thread>
+
 using namespace std::chrono_literals;
 
 namespace test_composition {

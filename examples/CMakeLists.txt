@@ -24,6 +24,7 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(GTest CONFIG REQUIRED COMPONENTS GTest GMock)
 find_package(rosidl_default_generators REQUIRED)
+find_package(Threads REQUIRED)
 
 # Generate action interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -99,6 +100,9 @@ target_include_directories(action_server_component PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+# Link with generated action interfaces and threads
+target_link_libraries(action_server_component ${cpp_typesupport_target} Threads::Threads)
 ament_target_dependencies(action_server_component
   rclcpp
   rclcpp_components
@@ -115,6 +119,9 @@ target_include_directories(action_client_component PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+
+# Link with generated action interfaces and threads
+target_link_libraries(action_client_component ${cpp_typesupport_target} Threads::Threads)
 ament_target_dependencies(action_client_component
   rclcpp
   rclcpp_components
@@ -134,6 +141,7 @@ target_link_libraries(manual_composition
   service_client_component
   action_server_component
   action_client_component
+  ${cpp_typesupport_target}
 )
 ament_target_dependencies(manual_composition
   rclcpp
@@ -199,16 +207,22 @@ if(BUILD_TESTING)
     AMENT_DEPENDENCIES
       rclcpp
       rclcpp_components
+      rclcpp_action
       std_msgs
       std_srvs
     )
+    target_link_libraries(action_server_component_test_doubles ${cpp_typesupport_target})
+    add_dependencies(action_server_component_test_doubles ${PROJECT_NAME})
     test_tools_add_doubles(action_client_component
       AMENT_DEPENDENCIES
         rclcpp
         rclcpp_components
+        rclcpp_action
         std_msgs
         std_srvs
     )
+    target_link_libraries(action_client_component_test_doubles ${cpp_typesupport_target})
+    add_dependencies(action_client_component_test_doubles ${PROJECT_NAME})
     add_subdirectory(test)
   endif()
 endif()

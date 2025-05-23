@@ -2,7 +2,7 @@
 
 #include <gmock/gmock.h>
 #include <rtest/static_registry.hpp>
-#include <rclcpp_action/rclcpp_action.hpp>
+#include <rtest/action_client_base.hpp>
 
 #define TEST_TOOLS_MAKE_SHARED_DEFINITION(...) \
   template<typename ... Args> \
